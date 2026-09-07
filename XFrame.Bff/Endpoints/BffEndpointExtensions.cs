@@ -83,21 +83,21 @@ public static class BffEndpointExtensions
             await sessionManager.DeleteAsync(context);
         }
 
+        await AuthenticationHttpContextExtensions.SignOutAsync(context, "xframe-cookie");
+
         var props = new AuthenticationProperties
         {
             RedirectUri = frontendOptions.Value.BaseUrl + returnUrl
         };
 
-        return Results.SignOut(
-            properties: props,
-            authenticationSchemes: new[]
-            {
-                "xframe-cookie", 
-                "xframe-oidc" 
-            }
-        );
-    }
+        if (context.Request.Headers["Accept"].ToString().Contains("application/json") ||
+            context.Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+        {
+            return Results.Ok(new { redirectUrl = $"{frontendOptions.Value.BaseUrl + returnUrl}" });
+        }
 
+        return Results.SignOut(properties: props, authenticationSchemes: new[] { "xframe-cookie", "xframe-oidc" });
+    }
 
     private static async Task<IResult> User(
         HttpContext context,
