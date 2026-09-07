@@ -3,7 +3,7 @@
   <PropertyGroup>
 	  <TargetFrameworks>net10.0</TargetFrameworks>
 	  <PackageId>XFrame.Bff</PackageId>
-	  <Version>10.0.6</Version>
+	  <Version>10.0.7</Version>
 	  <Authors>Lwandile Mfundisi</Authors>
 	  <Description>Reusable ASP.NET Core BFF for Keycloak/OpenID Connect applications.</Description>
 	  <IsPackable>true</IsPackable>
