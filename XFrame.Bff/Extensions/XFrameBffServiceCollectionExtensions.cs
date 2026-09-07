@@ -29,6 +29,9 @@ public static class XFrameBffServiceCollectionExtensions
         services.Configure<RedisOptions>(
             configuration.GetSection(RedisOptions.SectionName));
 
+        services.Configure<FrontendOptions>(
+            configuration.GetSection(FrontendOptions.SectionName));
+
         if (configure is not null)
             services.Configure(configure);
 

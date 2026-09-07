@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -35,6 +37,8 @@ public static class BffEndpointExtensions
     {
         var returnUrl = SafeReturnUrl(context.Request.Query["returnUrl"].ToString());
 
+        Console.WriteLine($"Redirecting to login with return URL: {frontendOptions.Value.BaseUrl + returnUrl}");
+
         await context.ChallengeAsync(
             "xframe-oidc",
             new AuthenticationProperties { RedirectUri = frontendOptions.Value.BaseUrl + returnUrl });
@@ -42,40 +46,58 @@ public static class BffEndpointExtensions
         return Results.Empty;
     }
 
-    private static async Task<IResult> Logout(
-        HttpContext context,
-        ISessionManager sessions,
-        ITokenService tokens,
-        IAntiforgery antiforgery,
-        IOptions<KeycloakOptions> keycloak,
-        IOptions<FrontendOptions> frontendOptions)
+    public static async Task<IResult> Logout(
+    HttpContext context,
+    ISessionManager sessionManager,
+    ITokenService tokenService,
+    IAntiforgery antiforgery,
+    IOptions<FrontendOptions> frontendOptions)
     {
-        try { await antiforgery.ValidateRequestAsync(context); }
-        catch (AntiforgeryValidationException) { return Results.BadRequest("Invalid CSRF token."); }
+        try
+        {
+            await antiforgery.ValidateRequestAsync(context);
+        }
+        catch (AntiforgeryValidationException)
+        {
+            return Results.BadRequest("Invalid CSRF token.");
+        }
 
-        var session = await sessions.GetAsync(context, context.RequestAborted);
+        var returnUrl = context.Request.Query["returnUrl"].ToString();
+        if (string.IsNullOrEmpty(returnUrl))
+        {
+            returnUrl = "/";
+        }
 
+        var session = await sessionManager.GetAsync(context, context.RequestAborted);
         if (session is not null)
         {
-            try { await tokens.RevokeAsync(session, context.RequestAborted); }
-            catch { /* local logout still proceeds */ }
+            try
+            {
+                await tokenService.RevokeAsync(session, context.RequestAborted);
+            }
+            catch
+            {
+                /* Selectively log or handle token revocation failure gracefully */
+            }
 
-            await sessions.DeleteAsync(context, context.RequestAborted);
+            await sessionManager.DeleteAsync(context);
         }
 
-        await context.SignOutAsync("xframe-cookie");
-
-        var kc = keycloak.Value;
-        var logout = $"{kc.Authority.TrimEnd('/')}/protocol/openid-connect/logout";
-        if (session?.IdToken is not null)
+        var props = new AuthenticationProperties
         {
-            logout += "?id_token_hint=" + Uri.EscapeDataString(session.IdToken) +
-                      "&post_logout_redirect_uri=" + Uri.EscapeDataString(frontendOptions.Value.BaseUrl) +
-                      "&client_id=" + Uri.EscapeDataString(kc.ClientId);
-        }
+            RedirectUri = frontendOptions.Value.BaseUrl + returnUrl
+        };
 
-        return Results.Redirect(logout);
+        return Results.SignOut(
+            properties: props,
+            authenticationSchemes: new[]
+            {
+                "xframe-cookie", 
+                "xframe-oidc" 
+            }
+        );
     }
+
 
     private static async Task<IResult> User(
         HttpContext context,
@@ -99,15 +121,6 @@ public static class BffEndpointExtensions
         IAntiforgery antiforgery)
     {
         var tokens = antiforgery.GetAndStoreTokens(context);
-
-        context.Response.Cookies.Append("__Host-XFrameCSRF", tokens.RequestToken!, new CookieOptions
-        {
-            HttpOnly = false,
-            Secure = true,
-            Path = "/",
-            SameSite = SameSiteMode.Strict
-        });
-
         return Results.Ok(new { token = tokens.RequestToken });
     }
 
