@@ -99,6 +99,15 @@ public static class BffEndpointExtensions
         IAntiforgery antiforgery)
     {
         var tokens = antiforgery.GetAndStoreTokens(context);
+
+        context.Response.Cookies.Append("__Host-XFrameCSRF", tokens.RequestToken!, new CookieOptions
+        {
+            HttpOnly = false,
+            Secure = true,
+            Path = "/",
+            SameSite = SameSiteMode.Strict
+        });
+
         return Results.Ok(new { token = tokens.RequestToken });
     }
 
