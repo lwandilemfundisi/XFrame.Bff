@@ -19,7 +19,7 @@ public sealed class BffSessionManager(
         AuthenticationProperties properties,
         CancellationToken ct = default)
     {
-        var subject = principal.FindFirstValue("sub")
+        var subject = principal.FindFirstValue(ClaimTypes.NameIdentifier)
             ?? throw new InvalidOperationException("Keycloak did not return a subject.");
 
         var claims = principal.Claims

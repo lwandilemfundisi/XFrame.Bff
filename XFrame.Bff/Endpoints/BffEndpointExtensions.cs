@@ -30,13 +30,14 @@ public static class BffEndpointExtensions
 
     private static async Task<IResult> Login(
         HttpContext context,
-        IOptions<XFrameBffOptions> options)
+        IOptions<XFrameBffOptions> options,
+        IOptions<FrontendOptions> frontendOptions)
     {
         var returnUrl = SafeReturnUrl(context.Request.Query["returnUrl"].ToString());
 
         await context.ChallengeAsync(
             "xframe-oidc",
-            new AuthenticationProperties { RedirectUri = returnUrl });
+            new AuthenticationProperties { RedirectUri = frontendOptions.Value.BaseUrl + returnUrl });
 
         return Results.Empty;
     }
@@ -46,7 +47,8 @@ public static class BffEndpointExtensions
         ISessionManager sessions,
         ITokenService tokens,
         IAntiforgery antiforgery,
-        IOptions<KeycloakOptions> keycloak)
+        IOptions<KeycloakOptions> keycloak,
+        IOptions<FrontendOptions> frontendOptions)
     {
         try { await antiforgery.ValidateRequestAsync(context); }
         catch (AntiforgeryValidationException) { return Results.BadRequest("Invalid CSRF token."); }
@@ -68,7 +70,7 @@ public static class BffEndpointExtensions
         if (session?.IdToken is not null)
         {
             logout += "?id_token_hint=" + Uri.EscapeDataString(session.IdToken) +
-                      "&post_logout_redirect_uri=" + Uri.EscapeDataString("https://localhost/") +
+                      "&post_logout_redirect_uri=" + Uri.EscapeDataString(frontendOptions.Value.BaseUrl) +
                       "&client_id=" + Uri.EscapeDataString(kc.ClientId);
         }
 

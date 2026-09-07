@@ -115,8 +115,8 @@ public static class XFrameBffServiceCollectionExtensions
             x.RequireHttpsMetadata = kc.RequireHttpsMetadata;
             x.ResponseType = "code";
             x.UsePkce = true;
-            x.CallbackPath = "/bff/signin-oidc";
-            x.SignedOutCallbackPath = "/bff/signout-callback-oidc";
+            //x.CallbackPath = "/bff/signin-oidc";
+            //x.SignedOutCallbackPath = "/bff/signout-callback-oidc";
             x.SaveTokens = true;
             x.GetClaimsFromUserInfoEndpoint = true;
 
