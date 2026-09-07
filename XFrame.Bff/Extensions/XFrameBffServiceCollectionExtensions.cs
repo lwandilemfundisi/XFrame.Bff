@@ -119,8 +119,6 @@ public static class XFrameBffServiceCollectionExtensions
             x.ResponseType = "code";
             x.UsePkce = true;
             x.DisableTelemetry = true;
-            //x.CallbackPath = "/bff/signin-oidc";
-            //x.SignedOutCallbackPath = "/bff/signout-callback-oidc";
             x.SaveTokens = true;
             x.GetClaimsFromUserInfoEndpoint = true;
 
@@ -133,7 +131,7 @@ public static class XFrameBffServiceCollectionExtensions
                 NameClaimType = "preferred_username"
             };
 
-            x.Events.OnTokenValidated = BffAuthenticationEvents.ConfigureTokenValidated;
+            x.Events.OnTicketReceived = BffAuthenticationEvents.ConfigureTicketReceived;
         });
 
         services.AddScoped<BffCookieEvents>();

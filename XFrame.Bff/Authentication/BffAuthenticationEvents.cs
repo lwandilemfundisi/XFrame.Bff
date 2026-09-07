@@ -1,16 +1,14 @@
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.Extensions.DependencyInjection;
 using System.Security.Claims;
-using System.Threading.Tasks;
 using XFrame.Bff.Session;
 
 namespace XFrame.Bff.Authentication;
 
 public static class BffAuthenticationEvents
 {
-    public static Task ConfigureTokenValidated(
-        TokenValidatedContext context)
+    public static Task ConfigureTicketReceived(
+        TicketReceivedContext context)
     {
         var manager = context.HttpContext.RequestServices.GetRequiredService<ISessionManager>();
 
@@ -18,7 +16,7 @@ public static class BffAuthenticationEvents
     }
 
     private static async Task CreateSession(
-        TokenValidatedContext context,
+        TicketReceivedContext context,
         ISessionManager manager)
     {
         var session = await manager.CreateAsync(
